@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dr. Matt's Clinic — Patient Intelligence Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #222536;
+      --border: #2e3248;
+      --accent: #4f8ef7;
+      --accent-soft: rgba(79,142,247,0.12);
+      --hot: #f25c5c;
+      --hot-soft: rgba(242,92,92,0.12);
+      --warm: #f5a623;
+      --warm-soft: rgba(245,166,35,0.12);
+      --cold: #4f8ef7;
+      --cold-soft: rgba(79,142,247,0.12);
+      --text: #e8eaf0;
+      --text-muted: #7b8099;
+      --text-dim: #4a5068;
+      --green: #3ecf8e;
+      --green-soft: rgba(62,207,142,0.12);
+      --radius: 14px;
+      --radius-sm: 8px;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 0;
+    }
+
+    /* HEADER */
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 20px 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .header-left h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 20px;
+      color: var(--text);
+      letter-spacing: -0.3px;
+    }
+
+    .header-left p {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .live-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--green-soft);
+      border: 1px solid rgba(62,207,142,0.25);
+      color: var(--green);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 5px 12px;
+      border-radius: 99px;
+      letter-spacing: 0.5px;
+    }
+
+    .live-dot {
+      width: 6px;
+      height: 6px;
+      background: var(--green);
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    .refresh-btn {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      font-size: 12px;
+      font-family: 'Inter', sans-serif;
+      padding: 6px 14px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .refresh-btn:hover {
+      background: var(--accent-soft);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    /* MAIN */
+    main {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 36px 40px;
+    }
+
+    /* LOADING */
+    #loading {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 60vh;
+      gap: 16px;
+      color: var(--text-muted);
+    }
+
+    .spinner {
+      width: 36px;
+      height: 36px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    #dashboard { display: none; }
+
+    /* SECTION LABEL */
+    .section-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 16px;
+    }
+
+    /* KPI GRID */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+
+    .kpi-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.2s;
+    }
+
+    .kpi-card:hover { border-color: var(--accent); }
+
+    .kpi-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+    }
+
+    .kpi-card.total::before { background: var(--accent); }
+    .kpi-card.hot::before { background: var(--hot); }
+    .kpi-card.warm::before { background: var(--warm); }
+    .kpi-card.cold::before { background: var(--cold); }
+    .kpi-card.scheduled::before { background: var(--green); }
+
+    .kpi-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+
+    .kpi-value {
+      font-size: 42px;
+      font-weight: 700;
+      line-height: 1;
+      letter-spacing: -2px;
+    }
+
+    .kpi-card.total .kpi-value { color: var(--accent); }
+    .kpi-card.hot .kpi-value { color: var(--hot); }
+    .kpi-card.warm .kpi-value { color: var(--warm); }
+    .kpi-card.cold .kpi-value { color: var(--cold); }
+    .kpi-card.scheduled .kpi-value { color: var(--green); }
+
+    .kpi-sub {
+      font-size: 12px;
+      color: var(--text-dim);
+      margin-top: 8px;
+    }
+
+    /* MID GRID */
+    .mid-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+    }
+
+    .card-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card-title span {
+      font-size: 16px;
+    }
+
+    /* SCORE BAR */
+    .score-visual {
+      margin-bottom: 20px;
+    }
+
+    .score-bar-wrap {
+      display: flex;
+      height: 8px;
+      border-radius: 99px;
+      overflow: hidden;
+      margin-bottom: 16px;
+      background: var(--surface2);
+    }
+
+    .score-bar-seg {
+      transition: width 0.8s cubic-bezier(.4,0,.2,1);
+    }
+
+    .score-legend {
+      display: flex;
+      gap: 20px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .legend-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .legend-count {
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    /* SERVICE LIST */
+    .service-list { display: flex; flex-direction: column; gap: 12px; }
+
+    .service-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .service-name {
+      font-size: 12px;
+      color: var(--text-muted);
+      width: 120px;
+      flex-shrink: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .service-bar-bg {
+      flex: 1;
+      height: 6px;
+      background: var(--surface2);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+
+    .service-bar-fill {
+      height: 100%;
+      background: var(--accent);
+      border-radius: 99px;
+      transition: width 0.8s cubic-bezier(.4,0,.2,1);
+    }
+
+    .service-count {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text);
+      width: 24px;
+      text-align: right;
+    }
+
+    /* DOCTOR TABLE */
+    .doctor-grid { display: flex; flex-direction: column; gap: 12px; }
+
+    .doctor-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      background: var(--surface2);
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+    }
+
+    .doctor-info { display: flex; align-items: center; gap: 12px; }
+
+    .doctor-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--accent-soft);
+      border: 1px solid var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    .doctor-name { font-size: 13px; font-weight: 500; color: var(--text); }
+    .doctor-sub { font-size: 11px; color: var(--text-muted); }
+
+    .doctor-badge {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 99px;
+    }
+
+    /* TIME GRID */
+    .time-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+
+    .time-card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      text-align: center;
+    }
+
+    .time-icon { font-size: 20px; margin-bottom: 8px; }
+    .time-label { font-size: 11px; color: var(--text-muted); margin-bottom: 6px; font-weight: 500; }
+    .time-count { font-size: 28px; font-weight: 700; color: var(--text); letter-spacing: -1px; }
+
+    /* WAITLIST */
+    .waitlist-info {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px;
+      background: var(--surface2);
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+    }
+
+    .waitlist-number {
+      font-size: 36px;
+      font-weight: 700;
+      color: var(--warm);
+      letter-spacing: -1px;
+    }
+
+    .waitlist-label { font-size: 12px; color: var(--text-muted); }
+
+    /* BOTTOM GRID */
+    .bottom-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+
+    /* RECENT TABLE */
+    .recent-table { width: 100%; border-collapse: collapse; }
+
+    .recent-table th {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      text-align: left;
+      padding: 0 12px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .recent-table td {
+      font-size: 12px;
+      color: var(--text-muted);
+      padding: 12px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+
+    .recent-table tr:last-child td { border-bottom: none; }
+    .recent-table tr:hover td { background: var(--surface2); }
+
+    .td-name { color: var(--text); font-weight: 500; }
+
+    .score-pill {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 99px;
+      letter-spacing: 0.5px;
+    }
+
+    .score-pill.Hot { background: var(--hot-soft); color: var(--hot); }
+    .score-pill.Warm { background: var(--warm-soft); color: var(--warm); }
+    .score-pill.Cold { background: var(--cold-soft); color: var(--cold); }
+    .score-pill.unknown { background: var(--surface2); color: var(--text-dim); }
+
+    /* FOOTER */
+    .last-updated {
+      text-align: center;
+      font-size: 11px;
+      color: var(--text-dim);
+      padding: 24px 0;
+      border-top: 1px solid var(--border);
+    }
+
+    /* RESPONSIVE */
+    @media (max-width: 900px) {
+      main { padding: 24px 20px; }
+      .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+      .mid-grid, .bottom-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <h1>Dr. Matt's Dental Clinic</h1>
+    <p>Patient Intelligence Dashboard</p>
+  </div>
+  <div class="header-right">
+    <div class="live-badge">
+      <div class="live-dot"></div>
+      LIVE
+    </div>
+    <button class="refresh-btn" onclick="loadData()">↻ Refresh</button>
+  </div>
+</header>
+
+<main>
+  <div id="loading">
+    <div class="spinner"></div>
+    <span>Loading patient data...</span>
+  </div>
+
+  <div id="dashboard">
+
+    <!-- KPIs -->
+    <p class="section-label">Overview</p>
+    <div class="kpi-grid">
+      <div class="kpi-card total">
+        <div class="kpi-label">Total Leads</div>
+        <div class="kpi-value" id="kpi-total">—</div>
+        <div class="kpi-sub">All time contacts</div>
+      </div>
+      <div class="kpi-card hot">
+        <div class="kpi-label">🔥 Hot</div>
+        <div class="kpi-value" id="kpi-hot">—</div>
+        <div class="kpi-sub">Urgent or in pain</div>
+      </div>
+      <div class="kpi-card warm">
+        <div class="kpi-label">⚡ Warm</div>
+        <div class="kpi-value" id="kpi-warm">—</div>
+        <div class="kpi-sub">Interested, no urgency</div>
+      </div>
+      <div class="kpi-card cold">
+        <div class="kpi-label">❄️ Cold</div>
+        <div class="kpi-value" id="kpi-cold">—</div>
+        <div class="kpi-sub">Just browsing</div>
+      </div>
+    </div>
+
+    <!-- MID GRID -->
+    <p class="section-label">Breakdown</p>
+    <div class="mid-grid">
+
+      <!-- Lead Score Distribution -->
+      <div class="card">
+        <div class="card-title"><span>📊</span> Lead Score Distribution</div>
+        <div class="score-visual">
+          <div class="score-bar-wrap">
+            <div class="score-bar-seg" id="bar-hot" style="background:var(--hot); width:0%"></div>
+            <div class="score-bar-seg" id="bar-warm" style="background:var(--warm); width:0%"></div>
+            <div class="score-bar-seg" id="bar-cold" style="background:var(--cold); width:0%"></div>
+          </div>
+          <div class="score-legend">
+            <div class="legend-item">
+              <div class="legend-dot" style="background:var(--hot)"></div>
+              Hot <span class="legend-count" id="leg-hot">0</span>
+            </div>
+            <div class="legend-item">
+              <div class="legend-dot" style="background:var(--warm)"></div>
+              Warm <span class="legend-count" id="leg-warm">0</span>
+            </div>
+            <div class="legend-item">
+              <div class="legend-dot" style="background:var(--cold)"></div>
+              Cold <span class="legend-count" id="leg-cold">0</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Services -->
+      <div class="card">
+        <div class="card-title"><span>🦷</span> Services Requested</div>
+        <div class="service-list" id="service-list">
+          <div style="color:var(--text-dim); font-size:12px;">Loading...</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- DOCTOR + TIME -->
+    <div class="mid-grid">
+
+      <!-- Doctor Performance -->
+      <div class="card">
+        <div class="card-title"><span>👨‍⚕️</span> Leads by Doctor</div>
+        <div class="doctor-grid" id="doctor-grid">
+          <div style="color:var(--text-dim); font-size:12px;">Loading...</div>
+        </div>
+      </div>
+
+      <!-- Contact Time + Waitlist -->
+      <div style="display:flex; flex-direction:column; gap:16px;">
+        <div class="card">
+          <div class="card-title"><span>🕐</span> Preferred Contact Time</div>
+          <div class="time-grid" id="time-grid">
+            <div class="time-card">
+              <div class="time-icon">🌅</div>
+              <div class="time-label">Morning</div>
+              <div class="time-count" id="time-morning">—</div>
+            </div>
+            <div class="time-card">
+              <div class="time-icon">☀️</div>
+              <div class="time-label">Afternoon</div>
+              <div class="time-count" id="time-afternoon">—</div>
+            </div>
+            <div class="time-card">
+              <div class="time-icon">🌙</div>
+              <div class="time-label">Evening</div>
+              <div class="time-count" id="time-evening">—</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title"><span>⏳</span> Waitlist</div>
+          <div class="waitlist-info">
+            <div>
+              <div class="waitlist-number" id="waitlist-count">—</div>
+              <div class="waitlist-label">patients waiting for a spot</div>
+            </div>
+            <div style="font-size:28px;">🪑</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- RECENT LEADS -->
+    <p class="section-label">Recent Activity</p>
+    <div class="card" style="margin-bottom:32px;">
+      <div class="card-title"><span>📋</span> Latest Leads</div>
+      <table class="recent-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Service</th>
+            <th>Doctor</th>
+            <th>Best Time</th>
+            <th>Score</th>
+            <th>Date</th>
+          </tr>
+        </thead>
+        <tbody id="recent-tbody">
+          <tr><td colspan="6" style="color:var(--text-dim); text-align:center; padding:24px;">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="last-updated" id="last-updated">—</div>
+  </div>
+</main>
+
+<script>
+  const SHEET_ID = '1GREdiY1QWGLm47yNz2OTvExUzHzRys2Fiu6Xhid78U4';
+  const API_KEY  = 'AIzaSyASTqYOvkNdlQFsMaF8TV1cY34zHRih39I'; // ← substitua aqui pela sua API Key do Google Cloud
+
+  const SHEETS = {
+    leads:    'Página1',
+    scheduled:'Scheduled',
+    waitlist: 'Waitlist'
+  };
+
+  async function fetchSheet(name) {
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(name)}?key=${API_KEY}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`Failed to fetch ${name}`);
+    const data = await res.json();
+    const [headers, ...rows] = data.values || [];
+    return rows.map(row => {
+      const obj = {};
+      headers.forEach((h, i) => obj[h.trim()] = (row[i] || '').trim());
+      return obj;
+    });
+  }
+
+  function initials(name) {
+    return name.split(' ').filter(Boolean).map(w => w[0]).join('').toUpperCase().slice(0,2);
+  }
+
+  function doctorColor(name) {
+    const n = (name || '').toLowerCase();
+    if (n.includes('matt')) return { bg: 'var(--accent-soft)', color: 'var(--accent)' };
+    if (n.includes('alexandre')) return { bg: 'var(--green-soft)', color: 'var(--green)' };
+    if (n.includes('samira')) return { bg: 'var(--warm-soft)', color: 'var(--warm)' };
+    return { bg: 'var(--surface2)', color: 'var(--text-muted)' };
+  }
+
+  async function loadData() {
+    document.getElementById('loading').style.display = 'flex';
+    document.getElementById('dashboard').style.display = 'none';
+
+    try {
+      const [leads, scheduled, waitlist] = await Promise.all([
+        fetchSheet(SHEETS.leads),
+        fetchSheet(SHEETS.scheduled),
+        fetchSheet(SHEETS.waitlist)
+      ]);
+
+      // KPIs
+      const total = leads.length;
+      const hot   = leads.filter(r => r['Lead Score'] === 'Hot').length;
+      const warm  = leads.filter(r => r['Lead Score'] === 'Warm').length;
+      const cold  = leads.filter(r => r['Lead Score'] === 'Cold').length;
+
+      document.getElementById('kpi-total').textContent = total;
+      document.getElementById('kpi-hot').textContent   = hot;
+      document.getElementById('kpi-warm').textContent  = warm;
+      document.getElementById('kpi-cold').textContent  = cold;
+
+      // Score bar
+      const pct = v => total ? Math.round(v/total*100) : 0;
+      document.getElementById('bar-hot').style.width  = pct(hot)+'%';
+      document.getElementById('bar-warm').style.width = pct(warm)+'%';
+      document.getElementById('bar-cold').style.width = pct(cold)+'%';
+      document.getElementById('leg-hot').textContent  = hot;
+      document.getElementById('leg-warm').textContent = warm;
+      document.getElementById('leg-cold').textContent = cold;
+
+      // Services
+      const svcMap = {};
+      leads.forEach(r => {
+        const s = r['Service'] || 'Other';
+        s.split(',').forEach(sv => {
+          const k = sv.trim();
+          if (k) svcMap[k] = (svcMap[k]||0)+1;
+        });
+      });
+      const svcSorted = Object.entries(svcMap).sort((a,b)=>b[1]-a[1]).slice(0,6);
+      const maxSvc = svcSorted[0]?.[1] || 1;
+      document.getElementById('service-list').innerHTML = svcSorted.map(([name, count]) => `
+        <div class="service-row">
+          <div class="service-name">${name}</div>
+          <div class="service-bar-bg">
+            <div class="service-bar-fill" style="width:${Math.round(count/maxSvc*100)}%"></div>
+          </div>
+          <div class="service-count">${count}</div>
+        </div>
+      `).join('') || '<div style="color:var(--text-dim);font-size:12px;">No data yet</div>';
+
+      // Doctor
+      const docMap = {};
+      leads.forEach(r => {
+        const d = r['Doctor'] || 'No preference';
+        docMap[d] = (docMap[d]||0)+1;
+      });
+      document.getElementById('doctor-grid').innerHTML = Object.entries(docMap)
+        .sort((a,b)=>b[1]-a[1])
+        .map(([name, count]) => {
+          const c = doctorColor(name);
+          return `
+          <div class="doctor-row">
+            <div class="doctor-info">
+              <div class="doctor-avatar" style="background:${c.bg};border-color:${c.color};color:${c.color};">${initials(name.replace('Dr.',''))}</div>
+              <div>
+                <div class="doctor-name">${name}</div>
+                <div class="doctor-sub">${count} lead${count!==1?'s':''}</div>
+              </div>
+            </div>
+            <div class="doctor-badge" style="background:${c.bg};color:${c.color};">${Math.round(count/total*100)}%</div>
+          </div>`;
+        }).join('') || '<div style="color:var(--text-dim);font-size:12px;">No data yet</div>';
+
+      // Contact Time
+      const morning   = leads.filter(r => /morning/i.test(r['Best Time'])).length;
+      const afternoon = leads.filter(r => /afternoon/i.test(r['Best Time'])).length;
+      const evening   = leads.filter(r => /evening/i.test(r['Best Time'])).length;
+      document.getElementById('time-morning').textContent   = morning;
+      document.getElementById('time-afternoon').textContent = afternoon;
+      document.getElementById('time-evening').textContent   = evening;
+
+      // Waitlist
+      document.getElementById('waitlist-count').textContent = waitlist.length;
+
+      // Recent leads
+      const recent = [...leads].reverse().slice(0, 10);
+      document.getElementById('recent-tbody').innerHTML = recent.map(r => {
+        const score = r['Lead Score'] || 'unknown';
+        const date  = r['Date'] ? new Date(r['Date']).toLocaleDateString('en-US',{month:'short',day:'numeric'}) : '—';
+        return `
+        <tr>
+          <td class="td-name">${r['Full Name']||'—'}</td>
+          <td>${(r['Service']||'—').split(',')[0].trim()}</td>
+          <td>${r['Doctor']||'—'}</td>
+          <td>${r['Best Time']||'—'}</td>
+          <td><span class="score-pill ${score}">${score}</span></td>
+          <td>${date}</td>
+        </tr>`;
+      }).join('') || '<tr><td colspan="6" style="color:var(--text-dim);text-align:center;padding:24px;">No leads yet</td></tr>';
+
+      // Last updated
+      document.getElementById('last-updated').textContent =
+        `Last updated: ${new Date().toLocaleString('en-US', {dateStyle:'medium', timeStyle:'short'})}`;
+
+      document.getElementById('loading').style.display  = 'none';
+      document.getElementById('dashboard').style.display = 'block';
+
+    } catch (err) {
+      document.getElementById('loading').innerHTML = `
+        <div style="color:var(--hot);font-size:14px;">⚠ Error loading data</div>
+        <div style="color:var(--text-dim);font-size:12px;">${err.message}</div>
+        <button class="refresh-btn" onclick="loadData()">Try again</button>`;
+    }
+  }
+
+  loadData();
+  setInterval(loadData, 5 * 60 * 1000);
+</script>
+</body>
+</html>
