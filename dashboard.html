@@ -782,8 +782,14 @@
 
       // AI Analysis
       const latestAnalysis = analysis[analysis.length - 1];
-      document.getElementById('ai-analysis').textContent = 
-        latestAnalysis ? latestAnalysis['Content'] : 'No analysis available yet. The system generates a new analysis every morning.';
+     const analysisText = latestAnalysis ? latestAnalysis['Content'] : 'No analysis available yet. The system generates a new analysis every morning.';
+      const formatted = analysisText
+        .replace(/KEY HIGHLIGHTS/g, '<div style="color:var(--accent);font-weight:700;font-size:11px;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;margin-top:0;">🔍 Key Highlights</div>')
+        .replace(/OPPORTUNITIES/g, '<div style="color:var(--green);font-weight:700;font-size:11px;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;margin-top:20px;">🚀 Opportunities</div>')
+        .replace(/WATCH OUT/g, '<div style="color:var(--hot);font-weight:700;font-size:11px;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;margin-top:20px;">⚠️ Watch Out</div>')
+        .replace(/\n/g, '<br>');
+      document.getElementById('ai-analysis').innerHTML = formatted;
+
       
       // Last updated
       document.getElementById('last-updated').textContent =
