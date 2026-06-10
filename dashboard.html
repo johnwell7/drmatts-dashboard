@@ -629,15 +629,7 @@
       </table>
     </div>
 
-    <!-- AI Analysis -->
-<div class="card" style="margin-bottom:32px;">
-  <div class="card-title"><span>🤖</span> AI Weekly Analysis</div>
-  <div id="ai-analysis" style="font-size:13px; color:var(--text-muted); line-height:1.8;">
-    Loading analysis...
-  </div>
-</div>
-
-<div class="last-updated" id="last-updated">—</div>
+    <div class="last-updated" id="last-updated">—</div>
   </div>
 </main>
 
@@ -648,8 +640,7 @@
   const SHEETS = {
     leads:    'Página1',
     scheduled:'Scheduled',
-    waitlist: 'Waitlist',
-    analysis: 'Analysis'
+    waitlist: 'Waitlist'
   };
 
   async function fetchSheet(name) {
@@ -682,13 +673,12 @@
     document.getElementById('dashboard').style.display = 'none';
 
     try {
-      const [leads, scheduled, waitlist, analysis] = await Promise.all([
+      const [leads, scheduled, waitlist] = await Promise.all([
         fetchSheet(SHEETS.leads),
         fetchSheet(SHEETS.scheduled),
-        fetchSheet(SHEETS.waitlist),
-        fetchSheet(SHEETS.analysis)
+        fetchSheet(SHEETS.waitlist)
       ]);
-     
+
       // KPIs
       const total = leads.length;
       const hot   = leads.filter(r => r['Lead Score'] === 'Hot').length;
@@ -782,14 +772,36 @@
 
       // AI Analysis
       const latestAnalysis = analysis[analysis.length - 1];
-     const analysisText = latestAnalysis ? latestAnalysis['Content'] : 'No analysis available yet. The system generates a new analysis every morning.';
-      const formatted = analysisText
-        .replace('KEY HIGHLIGHTS', '<div style="color:var(--accent);font-weight:700;font-size:11px;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">🔍 Key Highlights</div>')
-        .replace('OPPORTUNITIES', '<div style="color:var(--green);font-weight:700;font-size:11px;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;margin-top:20px;">🚀 Opportunities</div>')
-        .replace('WATCH OUT', '<div style="color:var(--hot);font-weight:700;font-size:11px;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;margin-top:20px;">⚠️ Watch Out</div>');
-      document.getElementById('ai-analysis').innerHTML = formatted;
+      const analysisText = latestAnalysis ? latestAnalysis['Content'] : '';
 
-      
+      if (analysisText) {
+        const sections = [
+          { key: 'KEY HIGHLIGHTS', icon: '🔍', color: 'var(--accent)' },
+          { key: 'OPPORTUNITIES',  icon: '🚀', color: 'var(--green)'  },
+          { key: 'WATCH OUT',      icon: '⚠️', color: 'var(--hot)'   }
+        ];
+
+        let html = '';
+        sections.forEach((sec, i) => {
+          const nextKey = sections[i+1] ? sections[i+1].key : null;
+          const start = analysisText.indexOf(sec.key);
+          if (start === -1) return;
+          const contentStart = start + sec.key.length;
+          const end = nextKey ? analysisText.indexOf(nextKey) : analysisText.length;
+          const content = analysisText.slice(contentStart, end !== -1 ? end : undefined).trim();
+          html += `
+            <div style="margin-bottom:20px;">
+              <div style="color:${sec.color};font-weight:700;font-size:11px;letter-spacing:1.2px;text-transform:uppercase;margin-bottom:8px;">${sec.icon} ${sec.key}</div>
+              <div style="color:var(--text-muted);font-size:13px;line-height:1.7;">${content}</div>
+            </div>`;
+        });
+
+        document.getElementById('ai-analysis').innerHTML = html ||
+          `<div style="color:var(--text-muted);font-size:13px;">${analysisText}</div>`;
+      } else {
+        document.getElementById('ai-analysis').textContent = 'No analysis available yet. The system generates a new analysis every morning.';
+      }
+
       // Last updated
       document.getElementById('last-updated').textContent =
         `Last updated: ${new Date().toLocaleString('en-US', {dateStyle:'medium', timeStyle:'short'})}`;
