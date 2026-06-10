@@ -682,12 +682,13 @@
     document.getElementById('dashboard').style.display = 'none';
 
     try {
-      const [leads, scheduled, waitlist] = await Promise.all([
+      const [leads, scheduled, waitlist, analysis] = await Promise.all([
         fetchSheet(SHEETS.leads),
         fetchSheet(SHEETS.scheduled),
-        fetchSheet(SHEETS.waitlist)
+        fetchSheet(SHEETS.waitlist),
+        fetchSheet(SHEETS.analysis)
       ]);
-
+     
       // KPIs
       const total = leads.length;
       const hot   = leads.filter(r => r['Lead Score'] === 'Hot').length;
