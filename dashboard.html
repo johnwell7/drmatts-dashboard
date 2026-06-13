@@ -782,13 +782,11 @@
         ];
 
         let html = '';
-        sections.forEach((sec, i) => {
-          const nextKey = sections[i+1] ? sections[i+1].key : null;
-          const start = analysisText.indexOf(sec.key);
-          if (start === -1) return;
-          const contentStart = start + sec.key.length;
-          const end = nextKey ? analysisText.indexOf(nextKey) : analysisText.length;
-          const content = analysisText.slice(contentStart, end !== -1 ? end : undefined).trim();
+       sections.forEach((sec, i) => {
+          const regex = new RegExp(sec.key + '[:\\s]*([\\s\\S]*?)(?=' + (sections[i+1] ? sections[i+1].key : '$') + '|$)');
+          const match = analysisText.match(regex);
+          if (!match) return;
+          const content = match[1].trim();
           html += `
             <div style="margin-bottom:20px;">
               <div style="color:${sec.color};font-weight:700;font-size:11px;letter-spacing:1.2px;text-transform:uppercase;margin-bottom:8px;">${sec.icon} ${sec.key}</div>
