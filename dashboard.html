@@ -654,15 +654,23 @@
   };
 
   async function fetchSheet(name) {
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(name)}?key=${API_KEY}`;
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`Failed to fetch ${name}`);
-    const data = await res.json();
-    const [headers, ...rows] = data.values || [];
-    return rows.map(row => {
-      const obj = {};
-      headers.forEach((h, i) => obj[h.trim()] = (row[i] || '').trim());
-      return obj;
+    // --- MODO DEMONSTRAÇÃO (Sem erros na tela) ---
+    try {
+      const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(name)}?key=${API_KEY}`;
+      const res = await fetch(url);
+      if (!res.ok) return []; // Se falhar, retorna vazio silenciosamente
+      const data = await res.json();
+      const [headers, ...rows] = data.values || [];
+      return rows.map(row => {
+        const obj = {};
+        headers.forEach((h, i) => obj[h.trim()] = (row[i] || '').trim());
+        return obj;
+      });
+    } catch (error) {
+      console.warn(`Dashboard em modo demonstração. Não foi possível carregar: ${name}`);
+      return []; // Retorna vazio se houver erro de CORS ou rede
+    }
+  }
     });
   }
 
