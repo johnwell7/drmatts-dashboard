@@ -656,7 +656,7 @@
   async function fetchSheet(name) {
     // --- MODO DEMONSTRAÇÃO (Sem erros na tela) ---
     try {
-      const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(name)}?key=${API_KEY}`;
+      const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(name)}?key=${AIzaSyCaYTg28zgtJm9vQ4dBXIVtflCKsf9NM98}`;
       const res = await fetch(url);
       if (!res.ok) return []; // Se falhar, retorna vazio silenciosamente
       const data = await res.json();
